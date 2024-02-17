@@ -1,5 +1,4 @@
-from engine.functions import log, exp
-from engine.tensor import Tensor, arange
+from engine.tensor import Tensor, arange, log, exp
 
 def cross_entropy(logits: Tensor, true_labels: Tensor) -> Tensor:
     '''Like torch.nn.functional.cross_entropy with reduction='none'.

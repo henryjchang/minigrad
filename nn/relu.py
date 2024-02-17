@@ -1,5 +1,4 @@
-from engine.tensor import Tensor
-from engine.functions import maximum
+from engine.tensor import Tensor, maximum
 from .core.module import Module
 
 class ReLU(Module):
