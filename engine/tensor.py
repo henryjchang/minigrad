@@ -4,7 +4,7 @@ import numpy as np
 
 # custom
 from engine.function_utils import unbroadcast, BackwardFuncLookup
-from engine.graph import sorted_computational_graph
+from engine.topological_sort import sorted_computational_graph
 
 Arr = np.ndarray
 
@@ -12,11 +12,11 @@ grad_tracking_enabled = True # TODO: refactor
 
 @dataclass(frozen=True)
 class Recipe:
-    '''Extra information necessary to run backpropagation. You don't need to modify this.'''
+    '''Extra information necessary to run backpropagation.'''
 
     func: Callable
     "The 'inner' NumPy function that does the actual forward computation."
-    "Note, we call it 'inner' to distinguish it from the wrapper we'll create for it later on."
+    "Note, we call it 'inner' to distinguish it from the wrapper we'll use for it later on."
 
     args: tuple
     "The input arguments passed to func."
@@ -202,15 +202,13 @@ def backprop(end_node: Tensor, end_grad: Optional[Tensor] = None) -> None:
         A tensor of the same shape as end_node.
         Set to 1 if not specified and end_node has only one element.
     '''
-    # SOLUTION
-
     # Get value of end_grad_arr
     end_grad_arr = np.ones_like(end_node.array) if end_grad is None else end_grad.array
 
     # Create dict to store gradients
     grads: Dict[Tensor, Arr] = {end_node: end_grad_arr}
 
-    # Iterate through the computational graph, using your sorting function
+    # Iterate through the computational graph
     for node in sorted_computational_graph(end_node):
 
         # Get the outgradient from the grads dict
@@ -262,8 +260,6 @@ def wrap_forward_fn(numpy_func: Callable, is_differentiable=True) -> Callable:
     '''
 
     def tensor_func(*args: Any, **kwargs: Any) -> "Tensor":
-        # SOLUTION
-
         # Get all function arguments as non-tensors (i.e. either ints or arrays)
         arg_arrays = tuple([(a.array if isinstance(a, Tensor) else a) for a in args])
 
@@ -288,6 +284,7 @@ def wrap_forward_fn(numpy_func: Callable, is_differentiable=True) -> Callable:
 
     return tensor_func
 
+# create a lookup table for backward functions
 BACK_FUNCS = BackwardFuncLookup()
 
 '''
@@ -314,14 +311,12 @@ def multiply_back0(grad_out: Arr, out: Arr, x: Arr, y: Union[Arr, float]) -> Arr
     '''Backwards function for x * y wrt argument 0 aka x.'''
     if not isinstance(y, Arr):
         y = np.array(y)
-    # SOLUTION
     return unbroadcast(y * grad_out, x)
 
 def multiply_back1(grad_out: Arr, out: Arr, x: Union[Arr, float], y: Arr) -> Arr:
     '''Backwards function for x * y wrt argument 1 aka y.'''
     if not isinstance(x, Arr):
         x = np.array(x)
-    # SOLUTION
     return unbroadcast(x * grad_out, y)
 
 multiply = wrap_forward_fn(np.multiply)
@@ -335,7 +330,6 @@ SINGLE-TENSOR DIFFERENTIABLE FUNCTIONS
 '''negative'''
 def negative_back(grad_out: Arr, out: Arr, x: Arr) -> Arr:
     '''Backward function for f(x) = -x elementwise.'''
-    # SOLUTION
     return unbroadcast(-grad_out, x)
 
 negative = wrap_forward_fn(np.negative)
@@ -343,7 +337,6 @@ BACK_FUNCS.add_back_func(np.negative, 0, negative_back)
 
 '''exp'''
 def exp_back(grad_out: Arr, out: Arr, x: Arr) -> Arr:
-    # SOLUTION
     return out * grad_out
 
 exp = wrap_forward_fn(np.exp)
@@ -351,7 +344,6 @@ BACK_FUNCS.add_back_func(np.exp, 0, exp_back)
 
 '''reshape'''
 def reshape_back(grad_out: Arr, out: Arr, x: Arr, new_shape: tuple) -> Arr:
-    # SOLUTION
     return np.reshape(grad_out, x.shape)
 
 reshape = wrap_forward_fn(np.reshape)
@@ -370,8 +362,6 @@ def invert_transposition(axes: tuple) -> tuple:
         (0, 2, 1) --> (0, 1, 2)
         (1, 2, 0) --> (2, 0, 1)  # this is reversing the order of a 3-cycle
     '''
-    # SOLUTION
-
     # Slick solution:
     return tuple(np.argsort(axes))
 
@@ -397,8 +387,6 @@ def _expand(x: Arr, new_shape) -> Arr:
     Note torch.expand supports -1 for a dimension size meaning "don't change the size".
     np.broadcast_to does not natively support this.
     '''
-    # SOLUTION
-
     n_added = len(new_shape) - x.ndim
     shape_non_negative = tuple([x.shape[i - n_added] if s == -1 else s for i, s in enumerate(new_shape)])
     return np.broadcast_to(x, shape_non_negative)
@@ -414,8 +402,6 @@ def _sum(x: Arr, dim=None, keepdim=False) -> Arr:
 
 def sum_back(grad_out: Arr, out: Arr, x: Arr, dim=None, keepdim=False):
     '''Basic idea: repeat grad_out over the dims along which x was summed'''
-    # SOLUTION
-
     # If grad_out is a scalar, we need to make it a tensor (so we can expand it later)
     if not isinstance(grad_out, Arr):
         grad_out = np.array(grad_out)
@@ -441,7 +427,6 @@ def coerce_index(index: Index) -> Union[int, Tuple[int, ...], Tuple[Arr]]:
     '''
     If index is of type signature `Tuple[Tensor]`, converts it to `Tuple[Arr]`.
     '''
-    # SOLUTION
     if isinstance(index, tuple) and all(isinstance(i, Tensor) for i in index):
         return tuple([i.array for i in index])
     else:
@@ -449,7 +434,6 @@ def coerce_index(index: Index) -> Union[int, Tuple[int, ...], Tuple[Arr]]:
     
 def _getitem(x: Arr, index: Index) -> Arr:
     '''Like x[index] when x is a torch.Tensor.'''
-    # SOLUTION
     return x[coerce_index(index)]
 
 def getitem_back(grad_out: Arr, out: Arr, x: Arr, index: Index):
@@ -459,7 +443,6 @@ def getitem_back(grad_out: Arr, out: Arr, x: Arr, index: Index):
     Hint: use np.add.at(a, indices, b)
     This function works just like a[indices] += b, except that it allows for repeated indices.
     '''
-    # SOLUTION
     new_grad_out = np.full_like(x, 0)
     np.add.at(new_grad_out, coerce_index(index), grad_out)
     return new_grad_out
@@ -477,7 +460,6 @@ def log_back(grad_out: Arr, out: Arr, x: Arr) -> Arr:
 
     Return: gradient of the given loss wrt x
     '''
-    # SOLUTION
     return grad_out / x
 
 log = wrap_forward_fn(np.log)
@@ -507,13 +489,11 @@ maximum
 '''
 def maximum_back0(grad_out: Arr, out: Arr, x: Arr, y: Arr):
     '''Backwards function for max(x, y) wrt x.'''
-    # SOLUTION
     bool_sum = ((x > y) + 0.5 * (x == y))
     return unbroadcast(grad_out * bool_sum, x)
 
 def maximum_back1(grad_out: Arr, out: Arr, x: Arr, y: Arr):
     '''Backwards function for max(x, y) wrt y.'''
-    # SOLUTION
     bool_sum = ((x < y) + 0.5 * (x == y))
     return unbroadcast(grad_out * bool_sum, y)
 
@@ -531,11 +511,9 @@ def _matmul2d(x: Arr, y: Arr) -> Arr:
     return x @ y
 
 def matmul2d_back0(grad_out: Arr, out: Arr, x: Arr, y: Arr) -> Arr:
-    # SOLUTION
     return grad_out @ y.T
 
 def matmul2d_back1(grad_out: Arr, out: Arr, x: Arr, y: Arr) -> Arr:
-    # SOLUTION
     return x.T @ grad_out
 
 matmul = wrap_forward_fn(_matmul2d)

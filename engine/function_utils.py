@@ -4,15 +4,12 @@ import numpy as np
 
 Arr = np.ndarray
 
-
 def unbroadcast(broadcasted: Arr, original: Arr) -> Arr:
     '''
     Sum 'broadcasted' until it has the shape of 'original'.
 
     broadcasted: An array that was formerly of the same shape of 'original' and was expanded by broadcasting rules.
     '''
-    # SOLUTION
-
     # Step 1: sum and remove prepended dims, so both arrays have same number of dims
     n_dims_to_sum = len(broadcasted.shape) - len(original.shape)
     broadcasted = broadcasted.sum(axis=tuple(range(n_dims_to_sum)))
@@ -26,16 +23,13 @@ def unbroadcast(broadcasted: Arr, original: Arr) -> Arr:
 
     return broadcasted
 
-# Used for registering backward functions
+# Used for "registering" backward functions
 class BackwardFuncLookup:
     def __init__(self) -> None:
-        # SOLUTION
         self.back_funcs: defaultdict[Callable, dict[int, Callable]] = defaultdict(dict)
 
     def add_back_func(self, forward_fn: Callable, arg_position: int, back_fn: Callable) -> None:
-        # SOLUTION
         self.back_funcs[forward_fn][arg_position] = back_fn
 
     def get_back_func(self, forward_fn: Callable, arg_position: int) -> Callable:
-        # SOLUTION
         return self.back_funcs[forward_fn][arg_position]

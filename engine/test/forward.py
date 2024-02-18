@@ -1,6 +1,0 @@
-# tests.test_log(Tensor, log)
-# tests.test_log_no_grad(Tensor, log)
-# tests.test_multiply(Tensor, multiply)
-# tests.test_multiply_no_grad(Tensor, multiply)
-# tests.test_multiply_float(Tensor, multiply)
-# tests.test_sum(Tensor)
