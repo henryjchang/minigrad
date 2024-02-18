@@ -19,5 +19,3 @@ def test_unbroadcast():
     out = unbroadcast(large, small)
     assert out.shape == small.shape
     assert (out == 4.0).all(), "Each element in the small array appeared 4 times in the large array."
-
-test_unbroadcast()

@@ -20,7 +20,6 @@ class Module:
 
         recurse: if True, the iterator includes parameters of submodules, recursively.
         '''
-        # SOLUTION
         parameters_list = list(self.__dict__["_parameters"].values())
         if recurse:
             for mod in self.modules():
@@ -32,7 +31,6 @@ class Module:
         If val is a Parameter or Module, store it in the appropriate _parameters or _modules dict.
         Otherwise, call __setattr__ from the superclass.
         '''
-        # SOLUTION
         if isinstance(val, Parameter):
             self.__dict__["_parameters"][key] = val
         elif isinstance(val, Module):
@@ -45,7 +43,6 @@ class Module:
         If key is in _parameters or _modules, return the corresponding value.
         Otherwise, raise KeyError.
         '''
-        # SOLUTION
         if key in self.__dict__["_parameters"]:
             return self.__dict__["_parameters"][key]
 
@@ -69,26 +66,3 @@ class Module:
             self.__class__.__name__ + "(",
             "\n  " + "\n  ".join(lines) + "\n" if lines else "", ")"
         ])
-
-
-# class TestInnerModule(Module):
-#     def __init__(self):
-#         super().__init__()
-#         self.param1 = Parameter(Tensor([1.0]))
-#         self.param2 = Parameter(Tensor([2.0]))
-
-# class TestModule(Module):
-#     def __init__(self):
-#         super().__init__()
-#         self.inner = TestInnerModule()
-#         self.param3 = Parameter(Tensor([3.0]))
-
-# mod = TestModule()
-# assert list(mod.modules()) == [mod.inner]
-# assert list(mod.parameters()) == [
-#     mod.param3,
-#     mod.inner.param1,
-#     mod.inner.param2,
-# ], "parameters should come before submodule parameters"
-# print("Manually verify that the repr looks reasonable:")
-# print(mod)
