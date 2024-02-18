@@ -8,10 +8,6 @@ def cross_entropy(logits: Tensor, true_labels: Tensor) -> Tensor:
 
     Return: shape (batch, ) containing the per-example loss.
     '''
-    # SOLUTION
     n_batch, n_class = logits.shape
     true = logits[arange(0, n_batch), true_labels]
     return -log(exp(true) / exp(logits).sum(1))
-
-
-# tests.test_cross_entropy(Tensor, cross_entropy)
